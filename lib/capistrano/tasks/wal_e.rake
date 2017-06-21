@@ -8,7 +8,6 @@ namespace :wal_e do
   task :setup_env do
     on roles :db do |role|
       sudo 'mkdir -p /etc/wal-e.d/env'
-      puts role
       sudo_upload! StringIO.new(fetch(:aws_access_key_id)), '/etc/wal-e.d/env/AWS_ACCESS_KEY_ID'
       sudo_upload! StringIO.new(fetch(:aws_secret_access_key)), '/etc/wal-e.d/env/AWS_SECRET_ACCESS_KEY'
       sudo_upload! StringIO.new(fetch(:aws_region)), '/etc/wal-e.d/env/AWS_REGION'
@@ -23,13 +22,18 @@ namespace :wal_e do
         0 3 * * * /usr/bin/envdir /etc/wal-e.d/env /usr/local/bin/wal-e backup-push /var/lib/postgresql/9.3/main
         0 5 * * * envdir /etc/wal-e.d/env /usr/local/bin/wal-e delete --confirm retain 5
       EOF
-      upload! StringIO.new(cron), "#{shared_path}/postgres-cron"
+      sudo_upload! StringIO.new(cron), "#{shared_path}/postgres-cron"
       sudo "chown -R root:postgres #{shared_path}/postgres-cron"
       sudo "-u postgres crontab #{shared_path}/postgres-cron"
     end
   end
+
+  task :setup do
+    invoke 'wal_e:setup_env'
+    invoke 'wal_e:setup_cron'
+  end
 end
 
 task :setup do
-  invoke 'wal_e:setup_env'
+  invoke 'wal_e:setup'
 end
