@@ -1,41 +1,49 @@
-# Capistrano::Wal::E
+# Capistrano::UnicornNginx
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/capistrano/wal/e`. To experiment with that code, run `bin/console` for an interactive prompt.
+Capistrano tasks for automatic and sensible WAL-E configuration
 
-TODO: Delete this and the text above, and describe your gem
+Goals of this plugin:
 
-## Installation
+* automatic configuration for setting up WAL-E for continuous backups of
+  PostgreSQL.
 
-Add this line to your application's Gemfile:
+Specifics:
 
-```ruby
-gem 'capistrano-wal-e'
+* generates environment variables for WAL-e
+* sets up cronjobs for base backups and deleting old ones
+
+Almost all the setup has been done by capistrano. There is just one manual step 
+that needs to be done.
+
+* Uncomment and modify these lines in your postgresql.conf file under /etc/postgresql/9.3/main/
+
+```
+wal_level = archive
+archive_mode = on
+archive_command = 'envdir /etc/wal-e.d/env /usr/local/bin/wal-e wal-push %p'
+archive_timeout = 60
 ```
 
-And then execute:
+Then restart postgres: `service postgresql restart`.
 
-    $ bundle
+* Test by making the first snapshot backup:
+```
+/usr/bin/envdir /etc/wal-e.d/env /usr/local/bin/wal-e backup-push /var/lib/postgresql/9.3/main
 
-Or install it yourself as:
+```
 
-    $ gem install capistrano-wal-e
+`capistrano-wal-e` works only with Capistrano 3!
 
-## Usage
+### Installation
 
-TODO: Write usage instructions here
+Add this to `Gemfile`:
 
-## Development
+    group :development do
+      gem 'capistrano', '~> 3.2.1'
+      gem 'capistrano-wal-e', '~> 0.1.1'
+    end
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+And then:
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
-
-## Contributing
-
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/capistrano-wal-e. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
-
-
-## License
-
-The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
+    $ bundle install
 
